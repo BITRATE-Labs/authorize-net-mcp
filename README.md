@@ -5,7 +5,7 @@ Work with Authorize.net transactions, settlement batches, recurring agreements, 
 | Runtime | Supported operations |
 | --- | --- |
 | Local MCP server over stdio or Streamable HTTP | Sandbox and production reads and writes, with permissions managed by your MCP client |
-| Executor community app | Sandbox and production reads, plus sandbox writes with human approval |
+| Executor community app | Sandbox and production reads and writes. Production writes require human approval. Sandbox writes use harness permissions. |
 
 ## Start a local MCP server
 
@@ -55,7 +55,7 @@ executor apps install --package @basicbit.executor.community/authorize-net-mcp -
 | `describe_operation` | `{"operation":"get_transaction"}` | Returns the exact input schema or the reason an operation needs another integration. |
 | `read` | `{"operation":"get_transaction","args":{"transId":"12345"}}` | Runs a read against the configured merchant and environment. |
 | `get_subscription_schedules` | `{"subscriptionIds":["12345","67890"]}` | Reads provider amounts and billing intervals for up to 20 exact ARB IDs. Reports errors per ID and omits customer profiles. |
-| `write` | `{"operation":"cancel_subscription","args":{"subscriptionId":"67890"}}` | Runs a write in the configured environment. Executor requires human approval and limits writes to Sandbox. |
+| `write` | `{"operation":"cancel_subscription","args":{"subscriptionId":"67890"}}` | Runs a write in the configured environment. In Executor, production writes require human approval and sandbox writes use harness permissions. |
 
 A Transaction Key can authorize financial operations at Authorize.net. The operation catalog and runtime enforce read and write limits. Keep keys scoped to the intended merchant and environment. [Authorize.net credential setup](https://developer.authorize.net/hello_world/common_setup_questions.html)
 

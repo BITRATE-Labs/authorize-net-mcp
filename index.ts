@@ -55,6 +55,10 @@ function merchantReader(ctx: QueryContext<typeof requirements>) {
 export default defineApp(requirements, async (evaluation) => {
   const original = evaluation.user?.accounts.merchant;
   if (!original) return { tools: router({}) };
+  const environment = original.method;
+  if (environment !== 'sandbox' && environment !== 'production') {
+    throw new Error('Unsupported merchant connection method.');
+  }
   const generationOptions = {
     key: 'write-approval-generation', schema: string(), freshFor: '1 day', staleFor: '0 seconds',
     load: async () => crypto.randomUUID(),
@@ -94,28 +98,29 @@ export default defineApp(requirements, async (evaluation) => {
       return z.json().parse({ environment, ...schedules });
     }),
     write: mutation({
-      description: 'Run an approved sandbox write once per normalized request and caller-owned connection. Input: {operation: string, args: object}. Describe the operation first. Production writes are disabled.',
+      description: `Run a ${environment} write once per normalized request and caller-owned connection. Input: {operation: string, args: object}. Describe the operation first. ${environment === 'production' ? 'Requires human approval.' : 'Uses harness permissions.'}`,
       input: record(json()), output: json(),
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
       approval: ({ toolInput }) => {
         parseDispatchInput(toolInput, 'write');
-        return original.method === 'sandbox' ? 'user-approval' : 'denied';
+        return environment === 'production' ? 'user-approval' : 'approved';
       },
     }, async (ctx, input) => {
       const { operation, args } = parseDispatchInput(input, 'write');
       const account = ctx.user.accounts.merchant;
       const currentGeneration = await ctx.cache.forAccount(account).get(generationOptions);
-      if (account.method !== 'sandbox' || account.id !== original.id || currentGeneration !== generation) {
-        throw new Error('Merchant connection changed or production writes are disabled. Request a new sandbox approval.');
+      if (account.method !== environment || account.id !== original.id || currentGeneration !== generation) {
+        throw new Error('Merchant connection changed. Start a new write request.');
       }
       let result: Record<string, unknown> | undefined;
       const receipt = await runReceiptedMutation({
         store: createSqlReceiptStore(ctx.sql),
-        scope: { callerId: account.id, accountId: account.id, environment: 'sandbox' },
+        scope: { callerId: account.id, accountId: account.id, environment },
         operation, normalizedInput: z.json().parse(args),
         invoke: async () => {
           try {
             result = await createClient({
-              environment: 'sandbox', apiLoginId: account.fields.apiLoginId,
+              environment, apiLoginId: account.fields.apiLoginId,
               transactionKey: account.fields.transactionKey, fetch: ctx.fetch,
               signal: ctx.signal, allowWrites: true,
               webhookOrigin: parseWebhookOrigin(account.fields.webhookDestinationOrigin),
@@ -129,7 +134,7 @@ export default defineApp(requirements, async (evaluation) => {
           }
         },
       });
-      return z.json().parse({ environment: 'sandbox', operation, ...receipt, ...(result ? { result } : {}) });
+      return z.json().parse({ environment, operation, ...receipt, ...(result ? { result } : {}) });
     }),
   }, {
     title: 'Authorize.net MCP',

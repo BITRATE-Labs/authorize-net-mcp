@@ -72,7 +72,9 @@ export async function runReceiptedMutation(options: {
   invoke(): Promise<DefinitiveOutcome>;
 }): Promise<{ receipt: Receipt; replayed: boolean }> {
   const { store, scope, operation } = options;
-  if (scope.environment !== "sandbox") throw new Error("Production mutations are disabled");
+  if (scope.environment !== "sandbox" && scope.environment !== "production") {
+    throw new Error("Receipt requires a valid merchant environment");
+  }
   if ([scope.callerId, scope.accountId, operation].some((value) => typeof value !== "string" || value.trim().length === 0)) {
     throw new Error("Receipt requires trusted identity and operation");
   }

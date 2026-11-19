@@ -20,4 +20,4 @@ Local checks cover HTTP request envelopes, Basic auth, output projection, pagina
 
 Live checks covered merchant authentication, settlement and ARB reads, Webhooks REST, and a sandbox customer profile's approval, creation, readback, deletion and not-found verification. Charge and refund execution, hosted forms and independent workspace isolation still need live verification. Keep merchant keys in the connection form and exact merchant test data out of the public repo.
 
-Executor enables writes only in Sandbox. The standalone server also supports production writes, with permissions managed by the MCP client.
+Executor requires human approval for production writes. Sandbox writes use harness permissions. The standalone MCP client manages write permissions in both environments.
