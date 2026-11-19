@@ -43,7 +43,7 @@ function merchantClient(signal: AbortSignal, allowWrites = false) {
 }
 
 function createServer() {
-  const server = new McpServer({ name: 'authorize-net-mcp', version: '0.4.0' });
+  const server = new McpServer({ name: 'authorize-net-mcp', version: '0.4.1' });
 
   server.registerTool('list_operations', {
     description: 'List Authorize.net operations and their availability.',

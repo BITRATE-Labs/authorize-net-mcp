@@ -38,9 +38,12 @@ const auDetail = z.object({
   updateTimeUTC: z.string().max(100),
   auReasonCode: z.string().max(20),
 });
-function auRecords(value: unknown): unknown {
-  return z.array(auDetail).max(1000).parse(Array.isArray(value) ? value : [value]);
-}
+const auRecords = z.union([z.array(auDetail).max(1000), auDetail]).nullish()
+  .transform((value) => Array.isArray(value) ? value : value == null ? [] : [value]);
+const auDetails = z.union([
+  z.object({ auDelete: auRecords, auUpdate: auRecords }),
+  z.tuple([]).transform(() => ({ auDelete: [], auUpdate: [] })),
+]).nullish().transform((value) => value ?? { auDelete: [], auUpdate: [] });
 
 function settlementInstant(value: unknown): number {
   if (typeof value !== 'string') return NaN;
@@ -122,8 +125,8 @@ export const reporting: readonly Operation[] = [
     id: 'get_account_updater_details', title: 'Get one page of Account Updater changes', kind: 'read', request: 'getAUJobDetailsRequest',
     input: z.strictObject({ month, modifiedTypeFilter: z.enum(['all', 'updates', 'deletes']).default('all'), paging }),
     build: (args) => ({ month: args.month, modifiedTypeFilter: args.modifiedTypeFilter, paging: args.paging }),
-    output: { totalNumInResultSet: true, auDetails: { auUpdate: auRecords, auDelete: auRecords } },
-    transform: (result, args) => ({ ...result, coverage: { month: args.month, modifiedTypeFilter: args.modifiedTypeFilter, limit: args.paging.limit, offset: args.paging.offset, scope: 'One page; Account Updater enrollment is required' } }),
+    output: { totalNumInResultSet: true, auDetails: (value) => auDetails.parse(value) },
+    transform: (result, args) => ({ auDetails: { auDelete: [], auUpdate: [] }, ...result, coverage: { month: args.month, modifiedTypeFilter: args.modifiedTypeFilter, limit: args.paging.limit, offset: args.paging.offset, scope: 'One page; Account Updater enrollment is required' } }),
   }),
   ...[
     ['get_hosted_payment_page', 'Prepare hosted payment', 'getHostedPaymentPageRequest', 'Requires a protected browser handoff that stores the short-lived form token outside MCP output and posts it to Authorize.net. No verified handoff is configured.'],

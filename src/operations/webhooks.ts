@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { rest, type Operation } from '../operation.js';
+import { PreflightError, rest, type Operation } from '../operation.js';
 
 const id = z.string().uuid();
 const eventType = z.string().regex(/^net\.authorize\.[A-Za-z.]+$/).max(160);
@@ -38,9 +38,8 @@ const webhookOutput = {
 const notificationOutput = { notificationId: true, deliveryStatus: true, eventType: true, eventDate: true, webhookId: true } as const;
 
 function checkDestination(destination: string, approvedOrigin?: string): void {
-  if (!approvedOrigin || new URL(destination).origin !== approvedOrigin) {
-    throw new Error('Webhook destination must match the connection-approved HTTPS origin');
-  }
+  if (!approvedOrigin) throw new PreflightError('No webhook destination origin is configured on this merchant connection. Configure its approved HTTPS origin before submitting a webhook write.');
+  if (new URL(destination).origin !== approvedOrigin) throw new PreflightError('Webhook destination does not match the connection-approved HTTPS origin. No webhook write was submitted.');
 }
 
 async function currentWebhook(
@@ -49,8 +48,8 @@ async function currentWebhook(
 ): Promise<Record<string, unknown>> {
   checkDestination(args.expectedUrl, ctx.webhookOrigin);
   const current = await ctx.readWebhook(args.webhookId);
-  if (current.webhookId !== args.webhookId) throw new Error('Webhook identity changed; inspect the exact webhook again');
-  if (current.url !== args.expectedUrl) throw new Error('Webhook destination changed; prepare a new approval');
+  if (current.webhookId !== args.webhookId) throw new PreflightError('Webhook identity changed; inspect the exact webhook again. No webhook write was submitted.');
+  if (current.url !== args.expectedUrl) throw new PreflightError('Webhook destination changed; prepare a new approval. No webhook write was submitted.');
   return current;
 }
 
@@ -100,7 +99,7 @@ export const webhooks: readonly Operation[] = [
     input: z.strictObject({ webhookId: id, expectedUrl: url }),
     build: async (args, ctx) => {
       const current = await currentWebhook(args, ctx);
-      if (current.status !== 'inactive') throw new Error('Test notifications require an inactive webhook');
+      if (current.status !== 'inactive') throw new PreflightError('Test notifications require an inactive webhook. No webhook write was submitted.');
       return { path: `/rest/v1/webhooks/${args.webhookId}/pings` };
     }, output: {},
   }),

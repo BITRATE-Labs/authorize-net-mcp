@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { ClientError, createClient } from './src/client.js';
 import { describeOperation, getOperation, listOperations } from './src/catalog.js';
 import { parseDescribeInput, parseDispatchInput, parseListInput, parseWebhookOrigin, readSubscriptionSchedules } from './src/tools.js';
-import { createSqlReceiptStore, runReceiptedMutation } from './src/receipts.js';
+import { createSqlReceiptStore, NotSubmittedError, runReceiptedMutation } from './src/receipts.js';
 
 const fields = object({
   apiLoginId: string({ minLength: 1, title: 'API Login ID' }),
@@ -127,6 +127,9 @@ export default defineApp(requirements, async (evaluation) => {
             }).execute(getOperation(operation), args);
             return { status: 'succeeded' };
           } catch (error) {
+            if (error instanceof ClientError && error.code === 'invalid_input') {
+              throw new NotSubmittedError(error.message);
+            }
             if (error instanceof ClientError && error.code === 'provider_rejected') {
               return { status: 'provider_error', definitive: true, providerCode: error.providerCode };
             }

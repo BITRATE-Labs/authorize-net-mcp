@@ -1,4 +1,4 @@
-import { asObject, type BuildContext, type Operation } from "./operation.js";
+import { asObject, PreflightError, type BuildContext, type Operation } from "./operation.js";
 
 type Payload = Record<string, unknown>;
 type NumberSource = { source?: string };
@@ -237,6 +237,7 @@ export function createClient(config: ClientConfig) {
         wire = await operation.build(parsed.data, context);
       } catch (error) {
         if (error instanceof ClientError) throw error;
+        if (error instanceof PreflightError) throw new ClientError("invalid_input", error.message);
         throw new ClientError("invalid_input", "The operation failed its preflight checks.");
       }
       const response = wire.family === "gateway"

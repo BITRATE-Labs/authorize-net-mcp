@@ -3,11 +3,13 @@ import type { Sql } from "apps";
 export type ReceiptState = "in_flight" | "succeeded" | "provider_error" | "completion_unknown";
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type Receipt = { key: string; fingerprint: string; state: ReceiptState; providerCode?: string; createdAt: number; updatedAt: number };
+export class NotSubmittedError extends Error {}
 
 export interface ReceiptStore {
   // Claim and lookup must be atomic across concurrent calls.
   claim(receipt: Receipt): Promise<{ claimed: boolean; receipt: Receipt }>;
   finish(key: string, state: Exclude<ReceiptState, "in_flight">, providerCode?: string): Promise<Receipt>;
+  release(key: string): Promise<void>;
 }
 
 export type ReceiptSql = Pick<Sql, "exec" | "transaction">;
@@ -22,6 +24,10 @@ function fromRow(row: Row | undefined): Receipt {
 
 export function createSqlReceiptStore(sql: ReceiptSql): ReceiptStore {
   return {
+    async release(key) {
+      const rows = sql.exec<Row>("DELETE FROM operation_receipts WHERE receipt_key = ? AND state = 'in_flight' RETURNING *", key).toArray();
+      if (rows.length !== 1) throw new Error("Receipt storage invariant failed");
+    },
     async claim(receipt) {
       return sql.transaction((tx) => {
         const inserted = tx.exec<Row>(
@@ -96,7 +102,11 @@ export async function runReceiptedMutation(options: {
       state = "provider_error";
       code = safeProviderCode(outcome.providerCode);
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof NotSubmittedError) {
+      await store.release(key);
+      throw error;
+    }
     // Transport errors cannot establish that the provider did nothing.
   }
   return { receipt: await store.finish(key, state, code), replayed: false };

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export type OperationKind = "read" | "write";
+export class PreflightError extends Error {}
 type Payload = Record<string, unknown>;
 export type Projection =
   | true

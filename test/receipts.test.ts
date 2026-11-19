@@ -107,6 +107,59 @@ test("atomic reservation blocks concurrent duplicates and survives store recreat
   } finally { db.close(); }
 });
 
+test("webhook preflight releases only its claim and permits recovery with identical input", async (context) => {
+  const { db, storage } = database();
+  context.after(() => db.close());
+  let transmissions = 0;
+  let failTransport = false;
+  context.mock.method(globalThis, "fetch", async () => {
+    transmissions++;
+    if (failTransport) throw new Error("private transport detail");
+    return Response.json({ webhookId: "11111111-1111-4111-8111-111111111111", status: "inactive" });
+  });
+  const { cache } = isolatedCacheSession(async () => ({
+    ok: true, value: { entry: { value: "generation", version: "v1", freshUntil: Date.now() + 60_000, staleUntil: Date.now() + 60_000 }, lease: null },
+  }));
+  const handler = createAppHandler(app);
+  const requirements = await handler(new Request("https://executor.invalid/", {
+    method: "POST", body: JSON.stringify({ operation: "requirements" }),
+  }), hostContext({ app: {} }));
+  const { value } = await requirements.json();
+  const input = { operation: "webhook_create", args: {
+    url: "https://hooks.example.test/fixture", status: "inactive", eventTypes: ["net.authorize.payment.authcapture.created"],
+  } };
+  const call = (webhookDestinationOrigin?: string) => handler(new Request("https://executor.invalid/", {
+    method: "POST", body: JSON.stringify({ operation: "call", kind: "mutation", tool: "write", input }),
+  }), { ...hostContext({ app: {}, user: { merchant: {
+    id: "acc_fixture", method: "sandbox", generation: 1,
+    fields: { apiLoginId: "fixture", transactionKey: "fixture-key", ...(webhookDestinationOrigin ? { webhookDestinationOrigin } : {}) },
+    provider: value.accounts.user.merchant.definition,
+  } } }), storage, cache, files: [{ path, content: migration }] });
+  for (const origin of [undefined, "https://different.example.test"]) {
+    const response = await call(origin);
+    assert.notEqual(response.status, 200);
+    assert.match(await response.text(), /webhook destination|Webhook destination/);
+    assert.equal(transmissions, 0);
+    assert.equal(db.prepare("SELECT count(*) AS n FROM operation_receipts").get()!.n, 0);
+  }
+  const recovered = await call("https://hooks.example.test");
+  assert.equal(recovered.status, 200, await recovered.text());
+  assert.equal(transmissions, 1);
+  const replay = await call("https://hooks.example.test");
+  assert.equal(replay.status, 200, await replay.text());
+  assert.equal(transmissions, 1);
+  assert.equal(db.prepare("SELECT state FROM operation_receipts").get()!.state, "succeeded");
+  input.args.url = "https://hooks.example.test/uncertain-fixture";
+  failTransport = true;
+  const uncertain = await call("https://hooks.example.test");
+  assert.equal(uncertain.status, 200);
+  assert.match(await uncertain.text(), /completion_unknown/);
+  const uncertainReplay = await call();
+  assert.equal(uncertainReplay.status, 200);
+  assert.match(await uncertainReplay.text(), /completion_unknown/);
+  assert.equal(transmissions, 2);
+});
+
 test("unknown completion never retries and stores no payload or error text", async () => {
   const { db, store } = database();
   try {

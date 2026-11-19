@@ -1,6 +1,6 @@
 {
   "name": "@basicbit.executor.community/authorize-net-mcp",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "type": "module",
   "description": "Authorize.net MCP for transaction reporting, recurring billing, customer profiles, and webhooks. Bring your own merchant keys. In Executor, production writes require human approval and sandbox writes use harness permissions.",

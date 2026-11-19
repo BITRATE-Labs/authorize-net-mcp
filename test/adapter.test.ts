@@ -146,6 +146,16 @@ test('webhook creation requires a previously approved exact destination origin',
   assert.equal(calls.length, 0);
 });
 
+test('stale webhook URL is actionable and sends no update', async () => {
+  const webhookId = '11111111-1111-4111-8111-111111111111';
+  const { client, calls } = mockClient([{ webhookId, url: 'https://merchant.example/changed', status: 'inactive' }], { allowWrites: true, webhookOrigin: 'https://merchant.example' });
+  await assert.rejects(client.execute(getOperation('webhook_update'), {
+    webhookId, expectedUrl: 'https://merchant.example/original', status: 'inactive',
+  }), (error: unknown) => errorCode('invalid_input')(error) && /destination changed/.test((error as Error).message));
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]!.init.method, 'GET');
+});
+
 
 
 test('read failures and oversized provider responses remain bounded and sanitized', async () => {

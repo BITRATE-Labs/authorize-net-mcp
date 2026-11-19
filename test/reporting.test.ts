@@ -56,6 +56,18 @@ test('Account Updater normalizes documented singleton and repeated changes witho
   assert.throws(() => op.parse({ month: '2026-13' }));
 });
 
+test('Account Updater exposes empty pages without accepting malformed detail rows', () => {
+  const op = operation('get_account_updater_details');
+  const input = op.parse({ month: '2026-11' });
+  for (const page of [{}, { auDetails: null }, { auDetails: [] }, { auDetails: {} }, { auDetails: { auUpdate: null } }]) {
+    const result = op.project({ ...page, totalNumInResultSet: 0 }, input);
+    assert.deepEqual(result.auDetails, { auDelete: [], auUpdate: [] });
+    assert.equal(result.totalNumInResultSet, 0);
+  }
+  assert.throws(() => op.project({ auDetails: [null] }, input));
+  assert.throws(() => op.project({ auDetails: { auDelete: { customerProfileID: '123' } } }, input));
+});
+
 test('all 28 owned request envelopes have one disposition and hosted tokens remain unavailable', () => {
   assert.equal(reporting.length, 28);
   assert.equal(new Set(reporting.map((entry) => entry.request)).size, 28);
