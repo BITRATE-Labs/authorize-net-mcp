@@ -4,7 +4,7 @@ import {
 import { z } from 'zod';
 import { ClientError, createClient } from './src/client.js';
 import { describeOperation, getOperation, listOperations } from './src/catalog.js';
-import { parseDescribeInput, parseDispatchInput, parseListInput, parseWebhookOrigin, readSubscriptionSchedules } from './src/executor.js';
+import { parseDescribeInput, parseDispatchInput, parseListInput, parseWebhookOrigin, readSubscriptionSchedules } from './src/tools.js';
 import { createSqlReceiptStore, runReceiptedMutation } from './src/receipts.js';
 
 const fields = object({

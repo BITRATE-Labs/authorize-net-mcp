@@ -2,13 +2,13 @@ import { z } from 'zod';
 import { getOperation } from './catalog.js';
 import { ClientError } from './client.js';
 
-const emptyInput = z.strictObject({});
-const describeInput = z.strictObject({ operation: z.string().min(1).max(128) });
-const dispatchInput = z.strictObject({
+export const listInput = z.strictObject({});
+export const describeInput = z.strictObject({ operation: z.string().min(1).max(128) });
+export const dispatchInput = z.strictObject({
   operation: z.string().min(1).max(128),
   args: z.unknown(),
 });
-const scheduleInput = z.strictObject({
+export const scheduleInput = z.strictObject({
   subscriptionIds: z.array(z.string().regex(/^[1-9][0-9]{0,19}$/)).min(1).max(20)
     .refine((ids) => new Set(ids).size === ids.length, 'Subscription IDs must be unique'),
 });
@@ -33,7 +33,7 @@ const subscriptionSchedule = z.object({
 });
 
 export function parseListInput(input: unknown) {
-  return emptyInput.parse(input);
+  return listInput.parse(input);
 }
 
 export function parseDescribeInput(input: unknown) {

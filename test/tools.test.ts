@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ClientError } from '../src/client.js';
-import { parseDescribeInput, parseDispatchInput, parseListInput, parseWebhookOrigin, readSubscriptionSchedules } from '../src/executor.js';
+import { parseDescribeInput, parseDispatchInput, parseListInput, parseWebhookOrigin, readSubscriptionSchedules } from '../src/tools.js';
 
 test('dispatcher rejects cross-effect operations and unknown envelope fields', () => {
   assert.throws(() => parseDispatchInput({ operation: 'authenticate_test', args: {} }, 'write'));

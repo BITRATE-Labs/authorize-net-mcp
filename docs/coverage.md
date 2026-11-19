@@ -16,7 +16,7 @@ Catalog availability denotes a mounted adapter. It is independent of a given mer
 
 ## Release verification
 
-Local checks verify mocked HTTP request envelopes, Basic auth header construction, response projection, pagination, connection host selection, business error handling, and SQL receipt behavior. They do not establish Executor's real credential substitution or Authorize.net's behavior.
+Local checks cover HTTP request envelopes, Basic auth, output projection, pagination, environment binding, business errors, and SQL receipts with fixtures. A standard MCP client also launches the stdio server to check initialization, discovery, read results, and write rejection.
 
 Live checks covered merchant authentication, settlement and ARB reads, Webhooks REST, and a sandbox customer profile's approval, creation, readback, deletion and not-found verification. Charge and refund execution, hosted forms and independent workspace isolation still need live verification. Keep merchant keys in the connection form and exact merchant test data out of the public repo.
 

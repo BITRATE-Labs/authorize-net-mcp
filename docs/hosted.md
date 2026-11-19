@@ -1,6 +1,6 @@
 # Hosted checkout and payment profile capture
 
-Authorize.net MCP does not expose hosted-form tokens through its tools. Buyers can use Authorize.net hosted forms without an Authorize.net merchant account, but this Executor app cannot currently deliver that buyer journey without another trusted browser delivery mechanism.
+Authorize.net hosted forms require a trusted browser delivery mechanism. Both MCP runtimes keep form tokens out of tool responses. A merchant's checkout or account server can deliver a hosted form to the buyer without giving the buyer merchant credentials.
 
 The missing dependency is a browser-only, authorized server endpoint that creates an Authorize.net form token and delivers it directly to the intended buyer's browser. Executor's current app UI requires an Executor session, has no public sharing, and calls the same tool router as MCP. It has no documented browser-only operation or invocation-source authorization boundary. Returning a token from an ordinary tool would make it available to an MCP client as well.
 

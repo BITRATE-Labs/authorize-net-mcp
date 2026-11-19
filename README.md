@@ -1,10 +1,34 @@
 # Authorize.net MCP
 
-Authorize.net merchant operations for MCP clients. Use your own API Login ID and Transaction Key to inspect payments and settlement, manage sandbox transactions and subscriptions, and work with customer profiles and webhooks.
+Inspect Authorize.net transactions, settlement batches, recurring agreements, customer profiles, and webhooks from an MCP client. Use your own merchant API Login ID and Transaction Key.
 
-The current runtime target is Executor. The app runs natively in the workspace and uses its existing MCP connection. There is no separate service or OAuth setup.
+| Runtime | Supported operations |
+| --- | --- |
+| Local MCP server over stdio | Sandbox and production reads on a client that can launch a local MCP server |
+| Executor community app | Sandbox and production reads, plus sandbox writes with human approval |
 
-## Connect a merchant
+## Start a local MCP server
+
+Install Node.js 24, then build the server.
+
+```sh
+git clone https://github.com/BITRATE-Labs/authorize-net-mcp.git
+cd authorize-net-mcp
+npm install --no-package-lock
+npm run build:stdio
+```
+
+Configure your MCP client to launch `node` with the absolute path to `dist/stdio.js` as its argument. Supply the two credential variables through the client's secret or environment configuration. `AUTHORIZE_NET_ENVIRONMENT` defaults to `sandbox`. Set it to `production` for reads on your live merchant.
+
+| Environment variable | Value |
+| --- | --- |
+| `AUTHORIZE_NET_API_LOGIN_ID` | Your merchant API Login ID |
+| `AUTHORIZE_NET_TRANSACTION_KEY` | Your merchant Transaction Key |
+| `AUTHORIZE_NET_ENVIRONMENT` | `sandbox` or `production` |
+
+The client can discover tools and inspect operation schemas before credentials are configured. A merchant read needs both keys. Start with `read` and `{"operation":"authenticate_test","args":{}}`. The server uses stdio for protocol messages, so launch `node` directly from your client.
+
+## Install in Executor
 
 1. Install the community package `@basicbit.executor.community/authorize-net-mcp` in your Executor workspace. Review the listed source revision before copying it. [Executor public apps](https://executor.sh/docs/concepts/apps-and-deployments#public-apps)
 2. Link your own merchant connection and select **Sandbox** or **Production**. Enter both values in the Executor browser form. [Authorize.net credential setup](https://developer.authorize.net/hello_world/common_setup_questions.html)
@@ -25,37 +49,38 @@ executor apps install --package @basicbit.executor.community/authorize-net-mcp -
 | --- | --- | --- |
 | `list_operations` | `{}` | Lists operation IDs, wire requests, effects and implementation availability. |
 | `describe_operation` | `{"operation":"get_transaction"}` | Returns the exact input schema or the reason an operation needs another integration. |
-| `read` | `{"operation":"get_transaction","args":{"transId":"12345"}}` | Runs a read against the caller's linked merchant and environment. |
+| `read` | `{"operation":"get_transaction","args":{"transId":"12345"}}` | Runs a read against the configured merchant and environment. |
 | `get_subscription_schedules` | `{"subscriptionIds":["12345","67890"]}` | Reads provider amounts and billing intervals for up to 20 exact ARB IDs. Reports errors per ID and omits customer profiles. |
-| `write` | `{"operation":"cancel_subscription","args":{"subscriptionId":"67890"}}` | Requests human approval for a Sandbox write. |
+| `write` | `{"operation":"cancel_subscription","args":{"subscriptionId":"67890"}}` | Executor only. Requests human approval for a Sandbox write. |
 
-A Transaction Key can authorize financial operations at Authorize.net. Executor restricts where its handles can be sent. The app's static operation catalog and approval policy restrict what gets sent. Production connections currently support reads. The production write gate stays closed until the native approval and connection binding can be verified on the deployed runtime.
+A Transaction Key can authorize financial operations at Authorize.net. The operation catalog and runtime enforce read and write limits. Keep keys scoped to the intended merchant and environment. [Authorize.net credential setup](https://developer.authorize.net/hello_world/common_setup_questions.html)
 
 To audit recurring revenue, list subscriptions in ascending ID order and follow `result.coverage.nextOffset`. Authorize.net can report zero in `totalNumInResultSet` on later pages that still contain subscriptions. Use the first page's `coverage.totalMatching` and verify the number of distinct IDs across the pages. A short page can end the scan even when the provider total is unknown. The page metadata explains whether the next offset came from the provider total or the page size.
 
 Use `get_subscription_schedules` for exact cadence, with smaller batches for spot checks. Every ID costs one Authorize.net read. Use `complete` and the per-ID outcomes to detect partial results. The gateway list can supply currency. An exact schedule read may omit it. Gateway failures include the sanitized provider code when Authorize.net supplies one.
 
-Each installation has one caller-owned merchant connection. Use separate installations to keep Sandbox and Production linked at the same time. An existing compatible Executor account can be linked directly. Credentials held by a different service need an authorized handoff into Executor account setup. Account setup and a successful gateway read are separate checks.
+Each client configuration or Executor installation uses one merchant connection. Use separate configurations to keep Sandbox and Production available at the same time.
 
 ## Coverage
 
 The catalog accounts for 53 gateway request envelopes and every documented Webhooks REST route. It has 24 read and 30 write implementations, with 31 additional entries that explain unmet browser, account, or provider prerequisites. Multiple payment variants share a gateway request envelope.
 
-Available writes cover saved-profile payments, capture, void and refund, fraud decisions, supported PayPal continuations, ARB, CIM metadata and webhook management. Each is subject to merchant capability and sandbox approval. Fresh card or bank data, wallet payloads and form tokens belong in a protected payment flow. See [hosted payment handoffs](docs/hosted.md) and [coverage and verification](docs/coverage.md).
+Sandbox writes in Executor cover saved-profile payments, capture, void and refund, fraud decisions, supported PayPal continuations, ARB, CIM metadata and webhook management. Each is subject to merchant capability and approval. Fresh card or bank data, wallet payloads and form tokens belong in a protected payment flow. See [hosted payment handoffs](docs/hosted.md) and [coverage and verification](docs/coverage.md).
 
 For a write, the app stores a receipt fingerprint before dispatch. Equivalent normalized input for the same linked account returns the receipt. It does not dispatch a second write. If completion is unknown, inspect the provider using the exact object references before attempting another operation. Never change the arguments just to work around the receipt.
 
-## Work on the app
+## Development
 
 Requires Node.js 24. The runtime SDK and direct dependencies are pinned in `package.json`.
 
 ```sh
 npm install --no-package-lock
 npm run typecheck
+npm run build:stdio
 npm test
 ```
 
-The tests use fake provider responses and an isolated SQLite fixture. None require credentials or contact Authorize.net. To deploy into a private workspace, use Executor's app-authoring guide to create an app ID, then deploy from the repository root using the signed-in CLI.
+The tests use fake provider responses and an isolated SQLite fixture. The stdio smoke test launches the server as a child process, initializes MCP, discovers tools and runs reads against a mock gateway. To deploy the Executor app into a private workspace, use the app-authoring guide to create an app ID, then deploy from the repository root using the signed-in CLI.
 
 ```sh
 executor apps deploy --app <app-id> --files .

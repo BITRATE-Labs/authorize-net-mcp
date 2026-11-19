@@ -1,19 +1,22 @@
 {
   "name": "@basicbit.executor.community/authorize-net-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Connect your own Authorize.net merchant account for reporting, recurring billing, profiles, webhooks, and approved sandbox writes.",
+  "description": "Authorize.net MCP for transaction reporting, recurring billing, customer profiles, and webhooks. Connect your own merchant keys.",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/BITRATE-Labs/authorize-net-mcp.git"
   },
   "scripts": {
+    "build:stdio": "tsc -p tsconfig.stdio.json",
+    "start:stdio": "node dist/stdio.js",
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
     "apps": "0.0.1-beta.143",
     "zod": "4.6.7"
   },
