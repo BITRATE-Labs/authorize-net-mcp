@@ -3,7 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Authorize.net MCP",
+  "description": "Connect your own Authorize.net merchant account for reporting, recurring billing, profiles, webhooks, and approved sandbox writes.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BASIC-BIT/authorize-net-mcp.git"
+  },
   "scripts": {
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"

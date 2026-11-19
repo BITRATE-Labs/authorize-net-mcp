@@ -6,12 +6,18 @@ The current runtime target is Executor. The app runs natively in the workspace a
 
 ## Connect a merchant
 
-1. Install or deploy the app in your Executor workspace.
+1. Install the community package `@basicbit.executor.community/authorize-net-mcp` in your Executor workspace. Review the listed source revision before copying it. [Executor public apps](https://executor.sh/docs/concepts/apps-and-deployments#public-apps)
 2. Link your own merchant connection and select **Sandbox** or **Production**. Enter both values in the Executor browser form. [Authorize.net credential setup](https://developer.authorize.net/hello_world/common_setup_questions.html)
 3. To test webhook changes, optionally enter a merchant-controlled HTTPS destination origin such as `https://hooks.example.com`. The app checks the exact origin and the current webhook destination before sending a change.
 4. Run `list_operations` and then `describe_operation` before dispatching an operation. Executor requires the merchant link before exposing the app tools.
 
 Use an Authorize.net sandbox merchant in Live Mode to persist test transactions. The Sandbox connection is fixed to the sandbox host independently of the merchant's Test Mode setting. [Authorize.net testing guide](https://developer.authorize.net/hello_world/testing_guide.html)
+
+To install from the signed-in Executor CLI, find the package in `executor apps catalog` and use the full commit shown for it.
+
+```sh
+executor apps install --package @basicbit.executor.community/authorize-net-mcp --commit <catalog-commit> --name "Authorize.net MCP"
+```
 
 ## Tool calls
 
@@ -56,3 +62,7 @@ executor apps deploy --app <app-id> --files .
 ```
 
 Verify the Sandbox connection and representative operations before publishing the same source through the community registry. Keep the Git commit and Executor deployment ID in the release record. [Executor documentation](https://executor.sh/docs)
+
+## License
+
+[MIT](LICENSE)

@@ -14,10 +14,10 @@ The gateway baseline is the 53 top-level request elements from Authorize.net's o
 
 Catalog availability denotes a mounted adapter. It is independent of a given merchant's enabled features and live evidence. A provider request may have multiple catalog entries with distinct effects. Legacy and device-specific entries remain visible with their prerequisites.
 
-## Sandbox evidence
+## Release verification
 
 Local checks verify mocked HTTP request envelopes, Basic auth header construction, response projection, pagination, connection host selection, business error handling, and SQL receipt behavior. They do not establish Executor's real credential substitution or Authorize.net's behavior.
 
-For live acceptance, link a developer-owned Authorize.net sandbox merchant in the private test deployment. Verify auth and a gateway read, a Webhooks REST read, and denied versus accepted human approvals. Use disposable sandbox records to check saved-profile charges, settlement and ARB reads, approved writes, readback, and a repeated request returning the prior receipt. Confirm a second workspace and account remain isolated. Keep merchant keys in the connection form and exact merchant test data out of the public repo.
+Live checks covered merchant authentication, settlement and ARB reads, Webhooks REST, and a sandbox customer profile's approval, creation, readback, deletion and not-found verification. Charge and refund execution, hosted forms and independent workspace isolation still need live verification. Keep merchant keys in the connection form and exact merchant test data out of the public repo.
 
 Production write readiness requires independent evidence that Executor approval stays bound to the same authenticated caller and credential generation on resume, including account relink and disconnect. No production writes are enabled.
