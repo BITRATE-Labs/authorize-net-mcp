@@ -21,7 +21,7 @@ export type ErrorCode =
 
 export class ClientError extends Error {
   constructor(readonly code: ErrorCode, message: string, readonly providerCode?: string) {
-    super(message);
+    super(providerCode ? `${message} [${providerCode}]` : message);
     this.name = "ClientError";
   }
 }

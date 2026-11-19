@@ -45,6 +45,26 @@ const subscriptionOutput = {
   arbTransactions: { arbTransaction: [{ transId: true, submitTimeUTC: true, payNum: true, attemptNum: true }] },
 } as const;
 
+function subscriptionPage(result: Record<string, unknown>, args: { paging: { limit: number; offset: number } }) {
+  const { limit, offset } = args.paging;
+  const returnedCount = Array.isArray(result.subscriptionDetails) ? result.subscriptionDetails.length : 0;
+  const reported = result.totalNumInResultSet;
+  const consumed = (offset - 1) * limit + returnedCount;
+  // Later ARB pages can report zero even when they contain rows.
+  const validTotal = typeof reported === 'number' && Number.isSafeInteger(reported) &&
+    reported >= (returnedCount ? consumed : 0) && (reported > 0 || offset === 1);
+  const totalMatching = validTotal ? reported : null;
+  const more = totalMatching === null ? returnedCount === limit : consumed < totalMatching;
+  return {
+    ...result,
+    coverage: {
+      limit, offset, returnedCount, totalMatching,
+      nextOffset: more && offset < 100000 ? offset + 1 : null,
+      nextOffsetBasis: validTotal ? 'provider_total' : 'page_size',
+    },
+  };
+}
+
 export const accounts: readonly Operation[] = [
   gateway({
     id: 'create_subscription', title: 'Create recurring charges using a saved payment profile. ARB and customer agreement required; creation does not prove payment.',
@@ -62,7 +82,8 @@ export const accounts: readonly Operation[] = [
     input: z.strictObject({ searchType: z.enum(['cardExpiringThisMonth', 'subscriptionActive', 'subscriptionExpiringThisMonth', 'subscriptionInactive']),
       sorting: z.strictObject({ orderBy: z.enum(['id', 'name', 'status', 'createTimeStampUTC', 'lastName', 'firstName', 'accountNumber', 'amount', 'pastOccurrences']), orderDescending: z.boolean() }).optional(), paging }),
     build: (a) => ({ searchType: a.searchType, sorting: a.sorting, paging: a.paging }),
-    output: { totalNumInResultSet: true, subscriptionDetails: [{ id: true, status: true, createTimeStampUTC: true, totalOccurrences: true, pastOccurrences: true, paymentMethod: true, amount: true, currencyCode: true, customerProfileId: true, customerPaymentProfileId: true, customerShippingProfileId: true }] } }),
+    output: { totalNumInResultSet: true, subscriptionDetails: [{ id: true, status: true, createTimeStampUTC: true, totalOccurrences: true, pastOccurrences: true, paymentMethod: true, amount: true, currencyCode: true, customerProfileId: true, customerPaymentProfileId: true, customerShippingProfileId: true }] },
+    transform: subscriptionPage }),
   gateway({ id: 'update_subscription', title: 'Change future recurring charge amount, name, order or saved profile. Requires customer agreement; does not refund earlier charges.', kind: 'write', request: 'ARBUpdateSubscriptionRequest',
     input: z.strictObject({ subscriptionId: id, subscription: z.strictObject({ name: text(50).optional(), amount: amount.optional(), order: order.optional(), profile: profile.optional() }).refine((v) => Object.keys(v).length > 0, 'Provide a change') }),
     build: async (a, ctx) => {

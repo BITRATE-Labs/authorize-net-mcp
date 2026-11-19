@@ -20,9 +20,16 @@ Use an Authorize.net sandbox merchant in Live Mode to persist test transactions.
 | `list_operations` | `{}` | Lists operation IDs, wire requests, effects and implementation availability. |
 | `describe_operation` | `{"operation":"get_transaction"}` | Returns the exact input schema or the reason an operation needs another integration. |
 | `read` | `{"operation":"get_transaction","args":{"transId":"12345"}}` | Runs a read against the caller's linked merchant and environment. |
+| `get_subscription_schedules` | `{"subscriptionIds":["12345","67890"]}` | Reads provider amounts and billing intervals for up to 20 exact ARB IDs. Reports errors per ID and omits customer profiles. |
 | `write` | `{"operation":"cancel_subscription","args":{"subscriptionId":"67890"}}` | Requests human approval for a Sandbox write. |
 
 A Transaction Key can authorize financial operations at Authorize.net. Executor restricts where its handles can be sent. The app's static operation catalog and approval policy restrict what gets sent. Production connections currently support reads. The production write gate stays closed until the native approval and connection binding can be verified on the deployed runtime.
+
+To audit recurring revenue, list subscriptions in ascending ID order and follow `result.coverage.nextOffset`. Authorize.net can report zero in `totalNumInResultSet` on later pages that still contain subscriptions. Use the first page's `coverage.totalMatching` and verify the number of distinct IDs across the pages. A short page can end the scan even when the provider total is unknown. The page metadata explains whether the next offset came from the provider total or the page size.
+
+Use `get_subscription_schedules` for exact cadence, with smaller batches for spot checks. Every ID costs one Authorize.net read. Use `complete` and the per-ID outcomes to detect partial results. The gateway list can supply currency. An exact schedule read may omit it. Gateway failures include the sanitized provider code when Authorize.net supplies one.
+
+Each installation has one caller-owned merchant connection. Use separate installations to keep Sandbox and Production linked at the same time. An existing compatible Executor account can be linked directly. Credentials held by a different service need an authorized handoff into Executor account setup. Account setup and a successful gateway read are separate checks.
 
 ## Coverage
 

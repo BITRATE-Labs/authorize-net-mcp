@@ -1,10 +1,10 @@
 import {
-  defineApp, defineProvider, json, mutation, object, plain, query, record, router, secrets, string,
+  defineApp, defineProvider, json, mutation, object, plain, query, record, router, secrets, string, type QueryContext,
 } from 'apps';
 import { z } from 'zod';
 import { ClientError, createClient } from './src/client.js';
 import { describeOperation, getOperation, listOperations } from './src/catalog.js';
-import { parseDescribeInput, parseDispatchInput, parseListInput, parseWebhookOrigin } from './src/executor.js';
+import { parseDescribeInput, parseDispatchInput, parseListInput, parseWebhookOrigin, readSubscriptionSchedules } from './src/executor.js';
 import { createSqlReceiptStore, runReceiptedMutation } from './src/receipts.js';
 
 const fields = object({
@@ -37,6 +37,21 @@ export const merchant = defineProvider({
 
 const requirements = { user: { accounts: { merchant } } };
 
+function merchantReader(ctx: QueryContext<typeof requirements>) {
+  const account = ctx.user.accounts.merchant;
+  if (account.method !== 'sandbox' && account.method !== 'production') {
+    throw new Error('Unsupported merchant connection method.');
+  }
+  const client = createClient({
+    environment: account.method,
+    apiLoginId: account.fields.apiLoginId,
+    transactionKey: account.fields.transactionKey,
+    fetch: ctx.fetch,
+    signal: ctx.signal,
+  });
+  return { environment: account.method, client };
+}
+
 export default defineApp(requirements, async (evaluation) => {
   const original = evaluation.user?.accounts.merchant;
   if (!original) return { tools: router({}) };
@@ -63,18 +78,20 @@ export default defineApp(requirements, async (evaluation) => {
       input: record(json()), output: json(),
     }, async (ctx, input) => {
       const { operation, args } = parseDispatchInput(input, 'read');
-      const account = ctx.user.accounts.merchant;
-      if (account.method !== 'sandbox' && account.method !== 'production') {
-        throw new Error('Unsupported merchant connection method.');
-      }
-      const result = await createClient({
-        environment: account.method,
-        apiLoginId: account.fields.apiLoginId,
-        transactionKey: account.fields.transactionKey,
-        fetch: ctx.fetch,
-        signal: ctx.signal,
-      }).execute(getOperation(operation), args);
-      return z.json().parse({ environment: account.method, operation, result });
+      const { environment, client } = merchantReader(ctx);
+      const result = await client.execute(getOperation(operation), args);
+      return z.json().parse({ environment, operation, result });
+    }),
+    get_subscription_schedules: query({
+      description: 'Read exact Authorize.net ARB amounts and billing schedules for 1–20 distinct subscription IDs. Input: {subscriptionIds: string[]}. Returns per-ID failures and a completeness flag. Makes one gateway read per ID.',
+      input: record(json()), output: json(),
+    }, async (ctx, input) => {
+      const { environment, client } = merchantReader(ctx);
+      const operation = getOperation('get_subscription');
+      const schedules = await readSubscriptionSchedules(input, (subscriptionId) =>
+        client.execute(operation, { subscriptionId, includeTransactions: false }),
+      );
+      return z.json().parse({ environment, ...schedules });
     }),
     write: mutation({
       description: 'Run an approved sandbox write once per normalized request and caller-owned connection. Input: {operation: string, args: object}. Describe the operation first. Production writes are disabled.',

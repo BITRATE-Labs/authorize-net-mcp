@@ -23,6 +23,20 @@ const create = {
   },
 };
 
+test('ARB page coverage treats zero totals on later pages as unknown', () => {
+  const op = operation('list_subscriptions');
+  const args = (offset: number) => op.parse({ searchType: 'subscriptionActive', paging: { limit: 2, offset } });
+  const first = op.project({ totalNumInResultSet: 5, subscriptionDetails: [{ id: '1' }, { id: '2' }] }, args(1));
+  assert.deepEqual(first.coverage, { limit: 2, offset: 1, returnedCount: 2, totalMatching: 5, nextOffset: 2, nextOffsetBasis: 'provider_total' });
+  const second = op.project({ totalNumInResultSet: 0, subscriptionDetails: [{ id: '3' }, { id: '4' }] }, args(2));
+  assert.equal(second.totalNumInResultSet, 0);
+  assert.deepEqual(second.coverage, { limit: 2, offset: 2, returnedCount: 2, totalMatching: null, nextOffset: 3, nextOffsetBasis: 'page_size' });
+  const last = op.project({ totalNumInResultSet: 0, subscriptionDetails: [{ id: '5' }] }, args(3));
+  assert.deepEqual(last.coverage, { limit: 2, offset: 3, returnedCount: 1, totalMatching: null, nextOffset: null, nextOffsetBasis: 'page_size' });
+  assert.deepEqual(op.project({ totalNumInResultSet: 0 }, args(1)).coverage,
+    { limit: 2, offset: 1, returnedCount: 0, totalMatching: 0, nextOffset: null, nextOffsetBasis: 'provider_total' });
+});
+
 test('ARB creation uses ordered saved-profile request and exact decimal amounts', async () => {
   const op = operation('create_subscription');
   const request = await op.build(op.parse(create), context);
@@ -65,8 +79,11 @@ test('CIM and ARB project provider JSON arrays and omit personal or payment fiel
   assert.deepEqual(operation('get_customer_profile').project({ profile: { customerProfileId: '12', email: 'private@example.com', paymentProfiles: [{ customerPaymentProfileId: '34', payment: { creditCard: { cardNumber: 'XXXX1111' } }, billTo: { address: 'Private' } }] } }, {}), {
     profile: { customerProfileId: '12', paymentProfiles: [{ customerPaymentProfileId: '34' }] },
   });
-  assert.deepEqual(operation('list_subscriptions').project({ totalNumInResultSet: 1, subscriptionDetails: [{ id: '56', status: 'active', firstName: 'Private', amount: '15.25' }] }, {}), {
+  const list = operation('list_subscriptions');
+  const listArgs = list.parse({ searchType: 'subscriptionActive', paging: {} });
+  assert.deepEqual(list.project({ totalNumInResultSet: 1, subscriptionDetails: [{ id: '56', status: 'active', firstName: 'Private', amount: '15.25' }] }, listArgs), {
     totalNumInResultSet: 1, subscriptionDetails: [{ id: '56', status: 'active', amount: '15.25' }],
+    coverage: { limit: 100, offset: 1, returnedCount: 1, totalMatching: 1, nextOffset: null, nextOffsetBasis: 'provider_total' },
   });
   assert.deepEqual(operation('list_customer_payment_profiles').project({ totalNumInResultSet: 1, paymentProfiles: [{ customerPaymentProfileId: '34', billTo: { address: 'Private' } }] }, {}), {
     totalNumInResultSet: 1, paymentProfiles: [{ customerPaymentProfileId: '34' }],
