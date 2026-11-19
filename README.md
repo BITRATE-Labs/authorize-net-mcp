@@ -1,10 +1,10 @@
 # Authorize.net MCP
 
-Inspect Authorize.net transactions, settlement batches, recurring agreements, customer profiles, and webhooks from an MCP client. Use your own merchant API Login ID and Transaction Key.
+Work with Authorize.net transactions, settlement batches, recurring agreements, customer profiles, and webhooks from an MCP client. Use your own merchant API Login ID and Transaction Key.
 
 | Runtime | Supported operations |
 | --- | --- |
-| Local MCP server over stdio | Sandbox and production reads on a client that can launch a local MCP server |
+| Local MCP server over stdio or Streamable HTTP | Sandbox and production reads and writes, with permissions managed by your MCP client |
 | Executor community app | Sandbox and production reads, plus sandbox writes with human approval |
 
 ## Start a local MCP server
@@ -18,15 +18,19 @@ npm install --no-package-lock
 npm run build:stdio
 ```
 
-Configure your MCP client to launch `node` with the absolute path to `dist/stdio.js` as its argument. Supply the two credential variables through the client's secret or environment configuration. `AUTHORIZE_NET_ENVIRONMENT` defaults to `sandbox`. Set it to `production` for reads on your live merchant.
+Supply credentials through your client or process environment. `AUTHORIZE_NET_ENVIRONMENT` defaults to `sandbox`. Set it to `production` to work with your live merchant.
 
 | Environment variable | Value |
 | --- | --- |
 | `AUTHORIZE_NET_API_LOGIN_ID` | Your merchant API Login ID |
 | `AUTHORIZE_NET_TRANSACTION_KEY` | Your merchant Transaction Key |
 | `AUTHORIZE_NET_ENVIRONMENT` | `sandbox` or `production` |
+| `AUTHORIZE_NET_WEBHOOK_DESTINATION_ORIGIN` | Optional merchant-controlled HTTPS origin for webhook changes |
 
-The client can discover tools and inspect operation schemas before credentials are configured. A merchant read needs both keys. Start with `read` and `{"operation":"authenticate_test","args":{}}`. The server uses stdio for protocol messages, so launch `node` directly from your client.
+- **stdio.** Configure your client to launch `node` with the absolute path to `dist/stdio.js` as its argument.
+- **Streamable HTTP.** Run `node dist/stdio.js --http` and point your client at `http://127.0.0.1:3000/mcp`. Pass a port after `--http` to change it. Local processes can call this endpoint using the merchant credentials supplied to the server.
+
+Tool discovery works before credentials are configured. To verify a connection, call `read` with `{"operation":"authenticate_test","args":{}}`. The standalone `write` tool advertises `destructiveHint: true` and `idempotentHint: false` so your client can apply its permission policy. Restrict access to `write` in your client for a read-only workflow.
 
 ## Install in Executor
 
@@ -51,7 +55,7 @@ executor apps install --package @basicbit.executor.community/authorize-net-mcp -
 | `describe_operation` | `{"operation":"get_transaction"}` | Returns the exact input schema or the reason an operation needs another integration. |
 | `read` | `{"operation":"get_transaction","args":{"transId":"12345"}}` | Runs a read against the configured merchant and environment. |
 | `get_subscription_schedules` | `{"subscriptionIds":["12345","67890"]}` | Reads provider amounts and billing intervals for up to 20 exact ARB IDs. Reports errors per ID and omits customer profiles. |
-| `write` | `{"operation":"cancel_subscription","args":{"subscriptionId":"67890"}}` | Executor only. Requests human approval for a Sandbox write. |
+| `write` | `{"operation":"cancel_subscription","args":{"subscriptionId":"67890"}}` | Runs a write in the configured environment. Executor requires human approval and limits writes to Sandbox. |
 
 A Transaction Key can authorize financial operations at Authorize.net. The operation catalog and runtime enforce read and write limits. Keep keys scoped to the intended merchant and environment. [Authorize.net credential setup](https://developer.authorize.net/hello_world/common_setup_questions.html)
 
@@ -65,9 +69,9 @@ Each client configuration or Executor installation uses one merchant connection.
 
 The catalog accounts for 53 gateway request envelopes and every documented Webhooks REST route. It has 24 read and 30 write implementations, with 31 additional entries that explain unmet browser, account, or provider prerequisites. Multiple payment variants share a gateway request envelope.
 
-Sandbox writes in Executor cover saved-profile payments, capture, void and refund, fraud decisions, supported PayPal continuations, ARB, CIM metadata and webhook management. Each is subject to merchant capability and approval. Fresh card or bank data, wallet payloads and form tokens belong in a protected payment flow. See [hosted payment handoffs](docs/hosted.md) and [coverage and verification](docs/coverage.md).
+Write operations cover saved-profile payments, capture, void and refund, fraud decisions, supported PayPal continuations, ARB, CIM metadata and webhook management. Availability depends on merchant capabilities. Fresh card or bank data, wallet payloads and form tokens belong in a protected payment flow. See [hosted payment handoffs](docs/hosted.md) and [coverage and verification](docs/coverage.md).
 
-For a write, the app stores a receipt fingerprint before dispatch. Equivalent normalized input for the same linked account returns the receipt. It does not dispatch a second write. If completion is unknown, inspect the provider using the exact object references before attempting another operation. Never change the arguments just to work around the receipt.
+Executor stores a receipt fingerprint before dispatch. Equivalent normalized input for the same linked account returns the receipt. If a write returns `completion_unknown`, inspect the provider using the exact object references before resubmitting.
 
 ## Development
 
@@ -80,7 +84,7 @@ npm run build:stdio
 npm test
 ```
 
-The tests use fake provider responses and an isolated SQLite fixture. The stdio smoke test launches the server as a child process, initializes MCP, discovers tools and runs reads against a mock gateway. To deploy the Executor app into a private workspace, use the app-authoring guide to create an app ID, then deploy from the repository root using the signed-in CLI.
+The tests use fake provider responses and an isolated SQLite fixture. The MCP smoke tests discover tools and run reads and writes against a mock gateway over stdio and Streamable HTTP. To deploy the Executor app into a private workspace, use the app-authoring guide to create an app ID, then deploy from the repository root using the signed-in CLI.
 
 ```sh
 executor apps deploy --app <app-id> --files .

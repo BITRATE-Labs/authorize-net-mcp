@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 const ok = { resultCode: 'Ok', message: [{ code: 'I00001' }] };
 
 globalThis.fetch = async (url, options) => {
-  assert.equal(url, 'https://api.authorize.net/xml/v1/request.api');
+  const host = process.env.AUTHORIZE_NET_ENVIRONMENT === 'production' ? 'api.authorize.net' : 'apitest.authorize.net';
+  assert.equal(url, `https://${host}/xml/v1/request.api`);
   assert.equal(options.method, 'POST');
   assert.equal(options.redirect, 'manual');
   const request = JSON.parse(options.body);
@@ -11,6 +12,10 @@ globalThis.fetch = async (url, options) => {
   const args = request[name];
   assert.deepEqual(args.merchantAuthentication, { name: 'fixture-login', transactionKey: 'fixture-key' });
 
+  if (name === 'getCustomerProfileRequest' || name === 'deleteCustomerProfileRequest') {
+    assert.equal(args.customerProfileId, '1');
+    return Response.json({ messages: ok, profile: { customerProfileId: args.customerProfileId } });
+  }
   if (name === 'getTransactionDetailsRequest') {
     return Response.json({ messages: ok, transaction: {
       transId: args.transId, transactionStatus: 'settledSuccessfully', settleAmount: '5.99',

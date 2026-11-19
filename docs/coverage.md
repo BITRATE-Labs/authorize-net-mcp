@@ -16,8 +16,8 @@ Catalog availability denotes a mounted adapter. It is independent of a given mer
 
 ## Release verification
 
-Local checks cover HTTP request envelopes, Basic auth, output projection, pagination, environment binding, business errors, and SQL receipts with fixtures. A standard MCP client also launches the stdio server to check initialization, discovery, read results, and write rejection.
+Local checks cover HTTP request envelopes, Basic auth, output projection, pagination, environment binding, business errors, and SQL receipts with fixtures. Standard MCP clients exercise tool discovery, reads and writes against a mock gateway over stdio and Streamable HTTP.
 
 Live checks covered merchant authentication, settlement and ARB reads, Webhooks REST, and a sandbox customer profile's approval, creation, readback, deletion and not-found verification. Charge and refund execution, hosted forms and independent workspace isolation still need live verification. Keep merchant keys in the connection form and exact merchant test data out of the public repo.
 
-Production write readiness requires independent evidence that Executor approval stays bound to the same authenticated caller and credential generation on resume, including account relink and disconnect. No production writes are enabled.
+Executor enables writes only in Sandbox. The standalone server also supports production writes, with permissions managed by the MCP client.
