@@ -1,0 +1,20 @@
+{
+  "name": "@basicbit.executor.community/authorize-net-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Authorize.net MCP",
+  "scripts": {
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "apps": "0.0.1-beta.143",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

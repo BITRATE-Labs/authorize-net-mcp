@@ -1,0 +1,1 @@
+CREATE TABLE operation_receipts (receipt_key TEXT PRIMARY KEY NOT NULL, fingerprint TEXT NOT NULL, state TEXT NOT NULL CHECK (state IN ('in_flight', 'succeeded', 'provider_error', 'completion_unknown')), provider_code TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);

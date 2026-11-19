@@ -1,0 +1,108 @@
+{
+  "source": "https://api.authorize.net/xml/v1/schema/AnetApiSchema.xsd",
+  "retrievedAt": "2026-11-19",
+  "sha256": "c9c76cdbeba1f030bb453cdeec963457b9f85c6799db9b3888b0ade1a635a1fa",
+  "requests": [
+    "ARBCancelSubscriptionRequest",
+    "ARBCreateSubscriptionRequest",
+    "ARBGetSubscriptionListRequest",
+    "ARBGetSubscriptionRequest",
+    "ARBGetSubscriptionStatusRequest",
+    "ARBUpdateSubscriptionRequest",
+    "authenticateTestRequest",
+    "createCustomerPaymentProfileRequest",
+    "createCustomerProfileFromTransactionRequest",
+    "createCustomerProfileRequest",
+    "createCustomerProfileTransactionRequest",
+    "createCustomerShippingAddressRequest",
+    "createTransactionRequest",
+    "decryptPaymentDataRequest",
+    "deleteCustomerPaymentProfileRequest",
+    "deleteCustomerProfileRequest",
+    "deleteCustomerShippingAddressRequest",
+    "getADDetailsRequest",
+    "getAUJobDetailsRequest",
+    "getAUJobSummaryRequest",
+    "getBatchStatisticsRequest",
+    "getCustomerPaymentProfileListRequest",
+    "getCustomerPaymentProfileNonceRequest",
+    "getCustomerPaymentProfileRequest",
+    "getCustomerProfileIdsRequest",
+    "getCustomerProfileRequest",
+    "getCustomerShippingAddressRequest",
+    "getHostedPaymentPageRequest",
+    "getHostedProfilePageRequest",
+    "getMerchantDetailsRequest",
+    "getSettledBatchListRequest",
+    "getTransactionDetailsRequest",
+    "getTransactionListForCustomerRequest",
+    "getTransactionListRequest",
+    "getTransactionSummaryRequest",
+    "getUnsettledTransactionListRequest",
+    "isAliveRequest",
+    "logoutRequest",
+    "mobileDeviceLoginPinRequest",
+    "mobileDeviceLoginVerifyChallengeRequest",
+    "mobileDeviceLoginVerifyPinRequest",
+    "mobileDeviceMfaLoginRequest",
+    "mobileDeviceRegistrationRequest",
+    "saveDeviceSNRequest",
+    "securePaymentContainerRequest",
+    "sendCustomerTransactionReceiptRequest",
+    "updateCustomerPaymentProfileRequest",
+    "updateCustomerProfileRequest",
+    "updateCustomerShippingAddressRequest",
+    "updateHeldTransactionRequest",
+    "updateMerchantDetailsRequest",
+    "updateSplitTenderGroupRequest",
+    "validateCustomerPaymentProfileRequest"
+  ],
+  "webhookSource": "https://developer.authorize.net/api/reference/features/webhooks.html",
+  "webhooks": [
+    {
+      "id": "webhook_list_event_types",
+      "method": "GET",
+      "path": "/rest/v1/eventtypes"
+    },
+    {
+      "id": "webhook_list",
+      "method": "GET",
+      "path": "/rest/v1/webhooks"
+    },
+    {
+      "id": "webhook_get",
+      "method": "GET",
+      "path": "/rest/v1/webhooks/{id}"
+    },
+    {
+      "id": "webhook_create",
+      "method": "POST",
+      "path": "/rest/v1/webhooks"
+    },
+    {
+      "id": "webhook_update",
+      "method": "PUT",
+      "path": "/rest/v1/webhooks/{id}"
+    },
+    {
+      "id": "webhook_delete",
+      "method": "DELETE",
+      "path": "/rest/v1/webhooks/{id}"
+    },
+    {
+      "id": "webhook_ping",
+      "method": "POST",
+      "path": "/rest/v1/webhooks/{id}/pings"
+    },
+    {
+      "id": "webhook_list_notifications",
+      "method": "GET",
+      "path": "/rest/v1/notifications"
+    },
+    {
+      "id": "webhook_get_notification",
+      "method": "GET",
+      "path": "/rest/v1/notifications/{id}"
+    }
+  ]
+}
