@@ -30,12 +30,15 @@ test('webhook configuration accepts only an exact HTTPS origin', () => {
 
 test('schedule reads preserve order, return gateway codes per ID and omit profiles', async () => {
   const subscription = { status: 'active', amount: '104.99',
-    paymentSchedule: { interval: { length: 12, unit: 'months' }, totalOccurrences: 9999 } };
+    paymentSchedule: { interval: { length: 12, unit: 'months' }, startDate: '2026-11-19', totalOccurrences: 9999 } };
   const input = { subscriptionIds: ['1', '2', '3'] };
   const value = await readSubscriptionSchedules(input, async (id) => {
     if (id === '2') throw new ClientError('provider_rejected', 'Authorize.net rejected this request.', 'E00013');
     if (id === '3') return { subscription: { status: 'active' } };
-    return { subscription: { ...subscription, profile: { customerProfileId: 'private' } } };
+    return { subscription: { ...subscription,
+      paymentSchedule: { ...subscription.paymentSchedule, startDate: '2026-11-19T00:00:00' },
+      profile: { customerProfileId: 'private' },
+    } };
   });
   assert.deepEqual(value, { complete: false, results: [
     { subscriptionId: '1', ok: true, subscription },

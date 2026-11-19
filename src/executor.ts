@@ -13,6 +13,8 @@ const scheduleInput = z.strictObject({
     .refine((ids) => new Set(ids).size === ids.length, 'Subscription IDs must be unique'),
 });
 const decimal = z.string().regex(/^\d+(?:\.\d+)?$/);
+const providerScheduleDate = z.union([z.iso.date(), z.iso.datetime({ local: true, offset: true })])
+  .transform((date) => date.slice(0, 10));
 const subscriptionSchedule = z.object({
   subscription: z.object({
     status: z.string().regex(/^[a-zA-Z_]{1,32}$/),
@@ -23,7 +25,7 @@ const subscriptionSchedule = z.object({
         length: z.number().int().min(1).max(365),
         unit: z.enum(['days', 'months']),
       }),
-      startDate: z.iso.date().optional(),
+      startDate: providerScheduleDate.optional(),
       totalOccurrences: z.number().int().nonnegative().optional(),
       trialOccurrences: z.number().int().nonnegative().optional(),
     }),
