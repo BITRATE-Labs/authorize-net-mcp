@@ -136,6 +136,9 @@ export default defineApp(requirements, async (evaluation) => {
             throw error;
           }
         },
+      }).catch((error: unknown) => {
+        if (!(error instanceof NotSubmittedError)) throw error;
+        return { status: 'not_submitted', error: { code: 'invalid_input', message: error.message } };
       });
       return z.json().parse({ environment, operation, ...receipt, ...(result ? { result } : {}) });
     }),

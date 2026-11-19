@@ -71,7 +71,7 @@ The catalog accounts for 53 gateway request envelopes and every documented Webho
 
 Write operations cover saved-profile payments, capture, void and refund, fraud decisions, supported PayPal continuations, ARB, CIM metadata and webhook management. Availability depends on merchant capabilities. Fresh card or bank data, wallet payloads and form tokens belong in a protected payment flow. See [hosted payment handoffs](docs/hosted.md) and [coverage and verification](docs/coverage.md).
 
-Executor stores a receipt fingerprint before dispatch. Equivalent normalized input for the same linked account returns the receipt. If a write returns `completion_unknown`, inspect the provider using the exact object references before resubmitting.
+Executor stores a receipt fingerprint before dispatch. Equivalent normalized input for the same linked account returns the receipt. A `not_submitted` result means the write failed preflight and can be submitted after the stated issue is corrected. If a receipt reports `completion_unknown`, inspect the provider using the exact object references before resubmitting.
 
 ## Development
 

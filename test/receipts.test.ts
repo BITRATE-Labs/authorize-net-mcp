@@ -137,8 +137,11 @@ test("webhook preflight releases only its claim and permits recovery with identi
   } } }), storage, cache, files: [{ path, content: migration }] });
   for (const origin of [undefined, "https://different.example.test"]) {
     const response = await call(origin);
-    assert.notEqual(response.status, 200);
-    assert.match(await response.text(), /webhook destination|Webhook destination/);
+    assert.equal(response.status, 200);
+    const { value } = await response.json();
+    assert.equal(value.status, 'not_submitted');
+    assert.equal(value.error.code, 'invalid_input');
+    assert.match(value.error.message, /webhook destination|Webhook destination/);
     assert.equal(transmissions, 0);
     assert.equal(db.prepare("SELECT count(*) AS n FROM operation_receipts").get()!.n, 0);
   }
