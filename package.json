@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/BASIC-BIT/authorize-net-mcp.git"
+    "url": "git+https://github.com/BITRATE-Labs/authorize-net-mcp.git"
   },
   "scripts": {
     "test": "tsx --test test/*.test.ts",
